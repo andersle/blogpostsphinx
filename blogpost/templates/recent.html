@@ -1,0 +1,36 @@
+{#
+    recent.html
+    ~~~~~~~~~~~
+
+    Template for recent posts cards.
+
+    :copyright: Copyright 2018, Anders Lervik.
+    :license: LGPLv2.1+. See LICENSE for more info.
+#}
+<p> Here are the {{ length }} most recent posts</p>
+<div class="row">
+{% for item in items %}
+<div class="col-sm-4">
+<div class="card border-primary mb-3" style="max-width: 35rem;">
+  <div class="card-header">{{ item['short_time'] }}<span class="text-muted"> / <em><time class="timeago" datetime="{{ item['time'] }}">{{ item['time'] }}</time></em></span></div>
+  <div class="card-body">
+    <h4 class="card-title">{{ item['title'] }}</h4>
+    <h5 class="card-subtitle mb-2 text-muted">{{ item['author'] }}
+| Labeled: <a href="{{ item['category_ref'] }}">{{ item['category'] }}</a></h5>
+  </div>
+    {%- if item['has_image'] -%}
+  <div class="card-body">
+    <img style="max-height: 250px; padding: 10px; margin-right: auto; margin-left: auto; display: block;" src="{{ item['imagefile'] }}" alt="Summary">
+  </div>
+{% endif %}
+  <div class="card-body"> 
+    <p class="card-text"><em>{{ item['summary'] }} </em></p>
+    <a href="{{ item['post_ref'] }}" class="card-link"> Read full post </a>
+  </div>
+  <div class="card-footer text-muted">
+    Tagged: {% for tag in item['tags_and_ref'] %} <a href="{{ tag['ref'] }}"> {{ tag['tag'] }}</a> {{"|" if not loop.last }} {% endfor %}
+  </div>
+</div>
+</div>
+{% endfor %}
+</div>

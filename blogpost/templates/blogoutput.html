@@ -1,0 +1,11 @@
+{#
+    blogoutput.html
+    ~~~~~~~~~~~~~~~
+
+    Template for blog summary output.
+
+    :copyright: Copyright 2018, Anders Lervik.
+    :license: LGPLv2.1+. See LICENSE for more info.
+#}
+<a href="{{ refid }}"> {{ title }}</a><span class="text-muted"> / <time class="timeago" datetime="{{ time }}"> {{ time }}</time></span>
+</br><em>{{ summary }}</em>
