@@ -1,0 +1,36 @@
+{#
+    taglist.html
+    ~~~~~~~~~~~~
+
+    Template for a list of tags.
+
+    :copyright: Copyright 2018, Anders Lervik.
+    :license: LGPLv2.1+. See LICENSE for more info.
+#}
+<p>
+Tags: {% for tag in tags_and_ref %} <a href="{{ tag['ref'] }}">{{ tag['tag'] }}</a> {{"&vert;" if not loop.last }} {% endfor %}
+</p>
+
+<div class="col-sm-4">
+  <div class="card border-primary mb-3" style="max-width: 35rem;">
+    <div class="card-header">List of tags</div>
+    <div class="card-body">
+        <div class="container-fluid">
+       {% for tag in tags_and_ref %}
+          {% if loop.index is divisibleby 2%}
+             <div class="col-xs-6">
+               <a href="{{ tag['ref'] }}">{{ tag['tag'] }}</a> 
+             </div>
+           </div>
+          {% else %}
+            <div class="row">
+             <div class="col-xs-6">
+               <a href="{{ tag['ref'] }}">{{ tag['tag'] }}</a> 
+             </div>
+         {% endif %}
+      {% endfor %}
+    </div>
+    </div>
+  </div>
+</div>
+

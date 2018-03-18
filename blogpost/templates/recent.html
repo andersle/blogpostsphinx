@@ -16,7 +16,7 @@
   <div class="card-body">
     <h4 class="card-title">{{ item['title'] }}</h4>
     <h5 class="card-subtitle mb-2 text-muted">{{ item['author'] }}
-| Labeled: <a href="{{ item['category_ref'] }}">{{ item['category'] }}</a></h5>
+| Category: <a href="{{ item['category_ref'] }}">{{ item['category'] }}</a></h5>
   </div>
     {%- if item['has_image'] -%}
   <div class="card-body">
@@ -25,7 +25,7 @@
 {% endif %}
   <div class="card-body"> 
     <p class="card-text"><em>{{ item['summary'] }} </em></p>
-    <a href="{{ item['post_ref'] }}" class="card-link"> Read full post </a>
+    <a href="{{ item['post_ref'] }}" class="card-link">Continue reading &rarr;</a>
   </div>
   <div class="card-footer text-muted">
     Tagged: {% for tag in item['tags_and_ref'] %} <a href="{{ tag['ref'] }}"> {{ tag['tag'] }}</a> {{"|" if not loop.last }} {% endfor %}

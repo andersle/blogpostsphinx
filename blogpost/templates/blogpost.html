@@ -8,10 +8,10 @@
     :license: LGPLv2.1+. See LICENSE for more info.
 #}
 <p class ="text-muted small; pb-0">
-<a href="{{ next_node }}">{{ next_text }}</a>
-&vert;
 <a href="{{ prev_node }}">{{ prev_text }}</a>
+&vert;
+<a href="{{ next_node }}">{{ next_text }}</a>
 </p> 
-<p class="text-muted small">{{ time }} (<time class="timeago" datetime="{{ long_time }}">{{ long_time }}</time>) &vert; by {{ author }} &vert; Labeled: <a href="{{ category_ref }}">{{ category }}</a>
+<p class="text-muted small">{{ time }} (<time class="timeago" datetime="{{ long_time }}">{{ long_time }}</time>) by {{ author }} &vert; Category: <a href="{{ category_ref }}">{{ category }}</a>
 </br>
 Tagged: {% for tag in tags_and_ref %} <a href="{{ tag['ref'] }}"> {{ tag['tag'] }}</a> {{"&vert;" if not loop.last }} {% endfor %}</p>

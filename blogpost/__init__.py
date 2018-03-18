@@ -2,428 +2,36 @@
 # Copyright (c) 2018, Anders Lervik.
 # Distributed under the LGPLv2.1+ License. See LICENSE for more info.
 """An extension for sphinx for making a blog-like web page."""
-from datetime import datetime
 import os
-import jinja2
 from docutils import nodes
-from docutils.parsers.rst import Directive
-from docutils.parsers.rst.directives import positive_int
-
-
-BLOG_ITEMS = {
-    'author': 'string',
-    'author_email': 'string',
-    'tags': 'set',
-    'title': 'string',
-    'category': 'string',
-    'location_city': 'string',
-    'location_country': 'string',
-    'time': 'string',
-    'summary': 'string',
-    'summary_image': 'string',
-}
-
-
-HERE = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE_DIR = os.path.join(HERE, 'templates')
-
-
-TEMPLATES = {
-    'blogpost': {
-        'pre': {'file': os.path.join(TEMPLATE_DIR, 'blogpost.html')},
-        'post': {'file': None}
-    },
-    'blogoutput': {
-        'pre': {'file': os.path.join(TEMPLATE_DIR, 'blogoutput.html')},
-        'post': {'file': None}
-    },
-    'recent': {
-        'pre': {'file': os.path.join(TEMPLATE_DIR, 'recent.html')},
-        'post': {'file': None}
-    },
-}
-
-
-def set_up_templates():
-    """Load files for the templates."""
-    for template in TEMPLATES:
-        for key in ('pre', 'post'):
-            template_file = TEMPLATES[template][key]['file']
-            if template_file is None or not os.path.isfile(template_file):
-                TEMPLATES[template][key]['template'] = jinja2.Template('')
-            else:
-                with open(template_file, 'r') as template_raw:
-                    TEMPLATES[template][key]['template'] = jinja2.Template(
-                        template_raw.read()
-                    )
-
-
-set_up_templates()
-
-
-def shorten_text(text, length=50, suffix='...'):
-    """Shorten text for a summary.
-
-    Parameters
-    ----------
-    text : string
-        The intput text.
-    length : integer
-        The maximum length.
-    suffix : string
-        The suffix to add after the maximum length.
-
-    Returns
-    -------
-    out : string
-        The shortened string.
-
-    Note
-    ----
-    The output string can be longer than 50 characters since
-    the suffix is added to the shortened string.
-
-    """
-    if len(text) <= length:
-        return text
-    return text[:length].rsplit(' ', 1)[0] + suffix
-
-
-def cvs_to_list(argument):
-    """Extract comma-separated values.
-
-    Parameters
-    ----------
-    argument : string
-        A string with comma separated values.
-
-    Returns
-    -------
-    out : list of strings
-        A list of strings as read from the input string.
-
-    """
-    if argument is None:
-        return []
-    value = [i.strip().lower() for i in argument.split(',')]
-    return value
-
-
-def stripped(argument):
-    """Return the argument text, stripped.
-
-    Parameters
-    ----------
-    argument : string
-        The input text to strip.
-
-    """
-    if argument is None:
-        return ''
-    return argument.strip()
-
-
-class BlogNode(nodes.General, nodes.Element):
-    """A simple node for a blog post.
-
-    This node is used by :py:class:`.BlogPostDirective` to store
-    the arguments for the blog post when parsing the directive.
-
-    """
-
-    # pylint: disable=unused-argument
-    pass
-
-
-class BlogOutputNode(nodes.General, nodes.Element):
-    """A simple node for a blog categories.
-
-    This node is used to store information which is used
-    for creating the small summaries in the list of tags, categories
-    and for the archive.
-
-    """
-
-    # pylint: disable=unused-argument
-    pass
-
-
-class CategoryNode(nodes.General, nodes.Element):
-    """A simple node for a blog categories.
-
-    This node is used by :py:class:`.BlogCategoryDirective` to store
-    category information from the blog posts.
-
-    """
-
-    # pylint: disable=unused-argument
-    pass
-
-
-class TagNode(nodes.General, nodes.Element):
-    """A simple node for a blog categories.
-
-    This node is used by :py:class:`.BlogTagDirective` to store
-    tag information from the blog posts.
-
-    """
-
-    # pylint: disable=unused-argument
-    pass
-
-
-class ArchiveNode(nodes.General, nodes.Element):
-    """A simple node for a blog categories.
-
-    This node is used by :py:class:`.BlogArchiveDirective` to store
-    information from the blog posts.
-
-    """
-
-    # pylint: disable=unused-argument
-    pass
-
-
-class RecentNode(nodes.General, nodes.Element):
-    """A simple node for a blog categories.
-
-    This node is used by :py:class:`.BlogRecentDirective` to store
-    information from the most recent blog posts.
-
-    """
-
-    # pylint: disable=unused-argument
-    pass
-
-
-class BlogPostDirective(Directive):
-    """A directive representing a blog post."""
-
-    has_content = False
-    required_arguments = 0
-    optional_arguments = 0
-    option_spec = {}
-    empty_defaults = {}
-    date_format = '%d.%m.%Y, %H:%M:%S'
-    short_date_format = '%B %d, %Y'
-
-    for key in BLOG_ITEMS:
-        if key == 'tags':
-            option_spec[key] = cvs_to_list
-        else:
-            option_spec[key] = stripped
-        empty_defaults[key] = option_spec[key](None)
-
-    def run(self):
-        """Execute the directive parsing."""
-        node = BlogNode()
-        for key in self.option_spec:
-            if key in self.options:
-                node[key] = self.options[key]
-            else:
-                node[key] = self.empty_defaults[key]
-        # Extract some time information:
-        time = datetime.strptime(node['time'], self.date_format)
-        year = time.year
-        node['short_time'] = time.strftime(self.short_date_format)
-        node['time'] = time
-        node['category_ref'] = None
-        node['docname'] = None
-        node['tags_ref'] = [None for _ in node['tags']]
-        node['tags_and_ref'] = [(None, None) for _ in node['tags']]
-        node['year'] = year
-        # Store information about the node, for further processing in
-        # other directives.
-        return_nodes = []
-        try:
-            env = self.state.document.settings.env
-            targetid = "post-%d" % env.new_serialno('post')
-            targetnode = nodes.target('', '', ids=[targetid])
-            node['docname'] = env.docname
-            node['dirname'] = os.path.dirname(env.docname)
-            node['targetid'] = targetid
-            if node['summary_image']:
-                sub = nodes.substitution_definition()
-                img = nodes.image()
-                img['uri'] = node['summary_image']
-                env.images.add_file('', img['uri'])
-                sub += img
-                return_nodes.append(sub)
-            if not hasattr(env, 'all_posts'):
-                env.all_posts = []
-            env.all_posts.append(
-                {
-                    'time': time,
-                    'post_node': node.deepcopy(),
-                    'docname': env.docname,
-                    'datetime': time,
-                    'targetid': targetid,
-                    'targetnode': targetnode,
-                }
-            )
-            return_nodes.append(targetnode)
-            return_nodes.append(node)
-            return return_nodes
-        except AttributeError:
-            pass
-        return [node]
-
-
-class BlogCategoryDirective(Directive):
-    """A directive for listing the categories."""
-
-    has_content = False
-
-    def run(self):
-        """Parse directive."""
-        node = CategoryNode()
-        env = self.state.document.settings.env
-        if not hasattr(env, 'category_docname'):
-            env.category_docname = env.docname
-        else:
-            raise ValueError('Only one category list is supported!')
-        node['categories'] = []
-        return [node]
-
-
-class BlogTagDirective(Directive):
-    """A directive for listing the tags."""
-
-    has_content = False
-
-    def run(self):
-        """Parse directive."""
-        node = TagNode()
-        env = self.state.document.settings.env
-        if not hasattr(env, 'tag_docname'):
-            env.tag_docname = env.docname
-        else:
-            raise ValueError('Only one tag list is supported!')
-        node['tags'] = []
-        return [node]
-
-
-class BlogArchiveDirective(Directive):
-    """A directive for making the archive list."""
-
-    has_content = False
-
-    def run(self):
-        """Parse directive."""
-        node = ArchiveNode()
-        env = self.state.document.settings.env
-        if not hasattr(env, 'archive_docname'):
-            env.archive_docname = env.docname
-        else:
-            raise ValueError('Only one archive list is supported!')
-        node['years'] = []
-        return [node]
-
-
-class BlogRecentDirective(Directive):
-    """A directive for the recent blog posts."""
-
-    has_content = False
-    required_arguments = 0
-    optional_arguments = 0
-    option_spec = {'length': positive_int}
-
-    def run(self):
-        """Parse directive."""
-        node = RecentNode()
-        for key in self.option_spec:
-            node[key] = self.options[key]
-        node['items'] = []
-        node['nmax'] = 0
-        env = self.state.document.settings.env
-        if not hasattr(env, 'recent_docname'):
-            env.recent_docname = env.docname
-        else:
-            raise ValueError('Recent posts can only be inserted once!')
-        if not hasattr(env, 'recent_nodes'):
-            env.recent_nodes = []
-        env.recent_nodes.append(node)
-        return [node]
-
-
-def html_visit_blogpost(self, node):
-    """Add HTML code for the blog post."""
-    self.body.append(
-        TEMPLATES['blogpost']['pre']['template'].render(
-            time=node['short_time'],
-            long_time=node['time'],
-            author=node['author'],
-            category=node['category'],
-            category_ref=node['category_ref'],
-            tags=node['tags'],
-            tags_and_ref=node['tags_and_ref'],
-            title=node['title'],
-            summary=node['summary'],
-            next_node=node['next'],
-            next_text=node['next_text'],
-            prev_node=node['prev'],
-            prev_text=node['prev_text'],
-        )
-    )
-
-
-def html_depart_blogpost(self, node):
-    """Add HTML code for the blog post."""
-    # pylint: disable=unused-argument
-    self.body.append(
-        TEMPLATES['blogpost']['post']['template'].render()
-    )
-
-
-def html_visit_blogoutput(self, node):
-    """Add HTML code for blog summaries."""
-    summary = shorten_text(node['summary'], length=100)
-    self.body.append(
-        TEMPLATES['blogoutput']['pre']['template'].render(
-            title=node['title'],
-            summary=summary,
-            refid=node['refid'],
-            time=node['time'],
-        )
-    )
-
-
-def html_depart_blogoutput(self, node):
-    """Add HTML code for blog summaries."""
-    # pylint: disable=unused-argument
-    self.body.append(
-        TEMPLATES['blogoutput']['post']['template'].render()
-    )
-
-
-def html_visit_empty(self, node):
-    """Do not add HTML code."""
-    # pylint: disable=unused-argument
-    pass
-
-
-def html_depart_empty(self, node):
-    """Do not add HTML code."""
-    # pylint: disable=unused-argument
-    pass
-
-
-def html_visit_recent(self, node):
-    """Add HTML code for the recent cards."""
-    self.body.append(
-        TEMPLATES['recent']['pre']['template'].render(
-            length=node['nmax'],
-            items=node['items'],
-        )
-    )
-
-
-def html_depart_recent(self, node):
-    """Add HTML code for the recent cards."""
-    # pylint: disable=unused-argument
-    self.body.append(
-        TEMPLATES['recent']['post']['template'].render()
-    )
+from blogpost.blogpostdirective import (
+    shorten_text,
+    BlogNode,
+    BlogOutputNode,
+    CategoryNode,
+    TagNode,
+    TagListNode,
+    ArchiveNode,
+    RecentNode,
+    BlogPostDirective,
+    BlogCategoryDirective,
+    BlogTagDirective,
+    BlogTagListDirective,
+    BlogArchiveDirective,
+    BlogRecentDirective,
+)
+from blogpost.templatehandler import (
+    html_visit_empty,
+    html_depart_empty,
+    html_visit_taglist,
+    html_depart_taglist,
+    html_visit_recent,
+    html_depart_recent,
+    html_visit_blogpost,
+    html_depart_blogpost,
+    html_visit_blogoutput,
+    html_depart_blogoutput,
+)
 
 
 def make_references(app, fromdocname):
@@ -802,6 +410,20 @@ def process_blog_posts(app, doctree, fromdocname):
             node['tags_and_ref'].append({'tag': tag, 'ref': ref})
         add_next_prev(app, node, archive_flat)
 
+    for node in doctree.traverse(TagListNode):
+        node['tags_ref'] = []
+        node['tags'] = []
+        for tag in tags:
+            node['tags'].append(tag)
+            ref = app.builder.get_relative_uri(
+                node['docname'], env.tag_docname
+            )
+            ref += '#' + env.tag_id[tag]
+            node['tags_ref'].append(ref)
+        node['tags_and_ref'] = []
+        for tag, ref in zip(node['tags'], node['tags_ref']):
+            node['tags_and_ref'].append({'tag': tag, 'ref': ref})
+
 
 def add_next_prev(app, node, archive_flat):
     """Add next/prev navigation for a node."""
@@ -811,15 +433,15 @@ def add_next_prev(app, node, archive_flat):
             idx_prev = i + 1
             if idx_prev > postmax:
                 idx_prev = 0
-                node['prev_text'] = 'Newest &olarr;'
+                node['prev_text'] = '&olarr; Newest'
             else:
-                node['prev_text'] = 'Previous &rarr;'
+                node['prev_text'] = '&larr; Previous'
             idx_next = i - 1
             if idx_next < 0:
                 idx_next = postmax
-                node['next_text'] = '&orarr; Oldest'
+                node['next_text'] = 'Oldest &orarr;'
             else:
-                node['next_text'] = '&larr; Next'
+                node['next_text'] = 'Next &rarr;'
             node['next'] = app.builder.get_relative_uri(
                 node['docname'], archive_flat[idx_next]['docname']
             )
@@ -870,6 +492,10 @@ def setup(app):
         html=(html_visit_empty, html_depart_empty),
     )
     app.add_node(
+        TagListNode,
+        html=(html_visit_taglist, html_depart_taglist),
+    )
+    app.add_node(
         ArchiveNode,
         html=(html_visit_empty, html_depart_empty),
     )
@@ -891,6 +517,7 @@ def setup(app):
     app.add_directive('blog-post-tags', BlogTagDirective)
     app.add_directive('blog-post-archive', BlogArchiveDirective)
     app.add_directive('blog-post-recent', BlogRecentDirective)
+    app.add_directive('blog-post-list-tags', BlogTagListDirective)
     app.connect('doctree-resolved', process_blog_posts)
     app.connect('html-page-context', modify_toc)
     return {'version': '0.1'}
